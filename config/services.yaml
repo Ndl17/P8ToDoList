@@ -28,3 +28,4 @@ services:
     # Configurez votre service UsersAuthenticator ici
     App\Security\UsersAuthenticator:
         # Ajoutez la configuration de votre service UsersAuthenticator ici
+        
