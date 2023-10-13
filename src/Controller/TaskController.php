@@ -5,24 +5,23 @@ namespace App\Controller;
 use App\Entity\Task;
 use App\Form\TaskType;
 use App\Repository\TaskRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Annotation\Route;
 
 class TaskController extends AbstractController
 {
-   
- 
+
     #[Route('/tasks', name: 'task_list')]
     public function listAction(TaskRepository $taskRepository)
     {
         $tasks = $taskRepository->findAll();
 
-        return $this->render('task/list.html.twig', ['tasks' => $tasks]);    
+        return $this->render('task/list.html.twig', ['tasks' => $tasks]);
     }
 
- 
     #[Route('/tasks/create', name: 'task_create')]
     public function createAction(EntityManagerInterface $entityManager, Request $request)
     {
@@ -31,12 +30,12 @@ class TaskController extends AbstractController
 
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {        
+        if ($form->isSubmitted() && $form->isValid()) {
             $task->setCreatedAt(new \DateTime());
+            $task->setUser($this->getUser());
             $task->setIsDone(false);
             $entityManager->persist($task);
             $entityManager->flush();
-            
 
             $this->addFlash('success', 'La tâche a été bien été ajoutée.');
 
@@ -46,16 +45,20 @@ class TaskController extends AbstractController
         return $this->render('task/create.html.twig', ['form' => $form->createView()]);
     }
 
-
-
-     #[Route('/tasks/{id}/edit', name: 'task_edit')]
-    public function editAction(Task $task, Request $request, EntityManagerInterface $entityManager)
+    #[Route('/tasks/{id}/edit', name: 'task_edit')]
+    public function editAction(Task $task, Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository)
     {
         $form = $this->createForm(TaskType::class, $task);
+       //Récupération de l'utilisateur
+        $user = $task->getUser();
 
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            //si l'utilisateur est null, on lui attribue l'utilisateur anonyme
+            if ($user == null) {
+                $task->setUser($userRepository->find(0));
+            }
             $entityManager->persist($task);
             $entityManager->flush();
 
@@ -70,9 +73,8 @@ class TaskController extends AbstractController
         ]);
     }
 
-
     #[Route('/tasks/{id}/toggle', name: 'task_toggle')]
-    public function toggleTaskAction(Task $task,  EntityManagerInterface $entityManager)
+    public function toggleTaskAction(Task $task, EntityManagerInterface $entityManager)
     {
         $task->setIsDone(!$task->isIsDone());
         $entityManager->persist($task);
@@ -82,7 +84,6 @@ class TaskController extends AbstractController
 
         return $this->redirectToRoute('task_list');
     }
-
 
     #[Route('/tasks/{id}/delete', name: 'task_delete')]
     public function deleteTaskAction(Task $task, EntityManagerInterface $entityManager)
