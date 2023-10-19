@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Security;
 
 class TaskController extends AbstractController
 {
@@ -23,9 +24,11 @@ class TaskController extends AbstractController
     }
 
     #[Route('/tasks/create', name: 'task_create')]
-    public function createAction(EntityManagerInterface $entityManager, Request $request)
+    public function createAction(EntityManagerInterface $entityManager, Request $request, Security $security)
     {
+        $currentUser = $security->getUser();
         $task = new Task();
+        $task->setUser($currentUser);
         $form = $this->createForm(TaskType::class, $task);
 
         $form->handleRequest($request);
@@ -44,6 +47,7 @@ class TaskController extends AbstractController
 
         return $this->render('task/create.html.twig', ['form' => $form->createView()]);
     }
+
 
     #[Route('/tasks/{id}/edit', name: 'task_edit')]
     public function editAction(Task $task, Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository)
